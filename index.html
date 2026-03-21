@@ -53,7 +53,7 @@
   .channel-card {
     background:var(--card);border:1px solid var(--border);border-radius:10px;
     overflow:hidden;cursor:pointer;transition:all .22s ease;
-    text-decoration:none;color:inherit;display:flex;flex-direction:column;
+    display:flex;flex-direction:column;
     animation:fadeIn .3s ease both;
   }
   .channel-card:hover {
@@ -68,14 +68,6 @@
   .logo-wrap::before { content:'';position:absolute;inset:0;background:radial-gradient(circle at center,rgba(255,255,255,.04) 0%,transparent 70%);pointer-events:none; }
   .logo-wrap img { max-width:100%;max-height:58px;object-fit:contain;transition:transform .3s;display:block;position:relative;z-index:1; }
   .channel-card:hover .logo-wrap img { transform:scale(1.08); }
-
-  .play-overlay {
-    position:absolute;inset:0;background:rgba(232,55,42,.18);
-    display:flex;align-items:center;justify-content:center;
-    opacity:0;transition:opacity .2s;z-index:2;
-  }
-  .channel-card:hover .play-overlay { opacity:1; }
-  .play-overlay svg { width:28px;height:28px;color:#fff;filter:drop-shadow(0 2px 8px rgba(0,0,0,.9)); }
 
   .no-logo {
     width:54px;height:54px;border-radius:50%;
@@ -92,13 +84,23 @@
   .live-dot { width:5px;height:5px;background:var(--green);border-radius:50%;animation:pulse 2s infinite;flex-shrink:0; }
   .live-label { font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px; }
 
-  .url2-btn {
-    display:inline-block; margin-top:6px; font-size:10px; font-weight:600;
-    color:var(--accent2); background:rgba(255,107,53,.12); border:1px solid rgba(255,107,53,.3);
-    border-radius:5px; padding:3px 8px; text-decoration:none; transition:all .2s;
-    white-space:nowrap; line-height:1.5;
+  /* Stream link buttons - stile DTTstream */
+  .ch-links {
+    display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;
   }
-  .url2-btn:hover { background:rgba(255,107,53,.28); border-color:var(--accent2); color:#fff; }
+  .lnk-btn {
+    flex:1;min-width:0;
+    display:flex;align-items:center;justify-content:center;gap:3px;
+    background:rgba(41,121,255,.1);border:1px solid rgba(41,121,255,.3);border-radius:5px;
+    padding:4px 6px;color:#82b1ff;
+    font-family:'DM Sans',sans-serif;font-size:10px;font-weight:700;
+    cursor:pointer;transition:background .15s,border-color .15s;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    text-decoration:none;
+  }
+  .lnk-btn:hover { background:rgba(41,121,255,.2);border-color:rgba(41,121,255,.5); }
+  .lnk-btn.alt { background:rgba(41,121,255,.1);border-color:rgba(41,121,255,.3);color:#82b1ff; }
+  .lnk-btn.alt:hover { background:rgba(41,121,255,.2); }
 
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
   @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
@@ -123,7 +125,7 @@
   }
   .chip:hover { border-color: var(--accent2); color: var(--accent2); }
   .chip.active { background: rgba(232,55,42,.15); border-color: var(--accent2); color: var(--accent2); }
-  .channel-group-label { font-size:10px; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
   footer { border-top:1px solid var(--border);padding:20px 28px;text-align:center;color:var(--muted);font-size:12px; }
 
   @media(max-width:600px){
@@ -317,32 +319,39 @@ function render(){
   }
 
   list.forEach((ch, i) => {
-    const a = document.createElement('a');
-    a.className = 'channel-card';
-    a.href = ch.url;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    a.style.animationDelay = Math.min(i*0.012, 0.5)+'s';
+    const card = document.createElement('div');
+    card.className = 'channel-card';
+    card.style.animationDelay = Math.min(i*0.012, 0.5)+'s';
+    card.addEventListener('click', () => window.open(ch.url, '_blank', 'noopener'));
 
-    const safeN = ch.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    // Conta gli stream disponibili
+    const streams = [ch.url, ch.url2, ch.url3].filter(Boolean);
 
-    a.innerHTML = `
+    // Costruisce i bottoni stream
+    let linksHtml = '<div class="ch-links">';
+    if (streams.length === 1) {
+      linksHtml += `<a class="lnk-btn" href="${streams[0]}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">▶ Guarda</a>`;
+    } else {
+      streams.forEach((url, idx) => {
+        const cls = idx === 0 ? 'lnk-btn' : 'lnk-btn alt';
+        linksHtml += `<a class="${cls}" href="${url}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">▶ ${idx + 1}</a>`;
+      });
+    }
+    linksHtml += '</div>';
+
+    card.innerHTML = `
       <div class="logo-wrap">
         ${ch.logo
-          ? `<img src="${ch.logo}" alt="${ch.name}" loading="lazy" onerror="this.onerror=null;this.parentNode.innerHTML='<div class=\\'no-logo\\'>${initials(ch.name)}</div><div class=\\'play-overlay\\'><svg viewBox=\\'0 0 24 24\\' fill=\\'currentColor\\'><path d=\\'M8 5v14l11-7z\\'/></svg></div>'">`
+          ? `<img src="${ch.logo}" alt="${ch.name}" loading="lazy" onerror="this.onerror=null;this.outerHTML='<div class=\\'no-logo\\'>${initials(ch.name)}</div>'">`
           : `<div class="no-logo">${initials(ch.name)}</div>`
         }
-        <div class="play-overlay">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-        </div>
       </div>
       <div class="channel-info">
         <div class="channel-num">${ch.num}</div>
         <div class="channel-name">${ch.name}</div>
-        <div class="live-row"><span class="live-dot"></span><span class="live-label">LIVE</span></div>
-        ${ch.url2 ? `<a class="url2-btn" href="${ch.url2}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">▶ Stream 2</a>` : ''}
+        ${linksHtml}
       </div>`;
-    grid.appendChild(a);
+    grid.appendChild(card);
   });
 }
 
